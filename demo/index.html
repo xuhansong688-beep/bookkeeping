@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f7f8" />
+    <title>Bookkeeping Demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <i data-lucide="wallet-minimal"></i>
+          </span>
+          <span>
+            <strong>记账本</strong>
+            <small>MVP Demo</small>
+          </span>
+        </div>
+
+        <nav class="side-nav">
+          <button class="nav-item is-active" type="button" aria-current="page">
+            <i data-lucide="book-open-text" aria-hidden="true"></i>
+            <span>本月账本</span>
+          </button>
+          <button class="nav-item" type="button" disabled>
+            <i data-lucide="chart-no-axes-combined" aria-hidden="true"></i>
+            <span>统计</span>
+            <small>后续</small>
+          </button>
+          <button class="nav-item" type="button" disabled>
+            <i data-lucide="settings-2" aria-hidden="true"></i>
+            <span>设置</span>
+            <small>后续</small>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button id="resetDataButton" class="text-button" type="button">
+            <i data-lucide="rotate-ccw" aria-hidden="true"></i>
+            <span>恢复演示数据</span>
+          </button>
+          <button id="helpButton" class="text-button" type="button">
+            <i data-lucide="circle-help" aria-hidden="true"></i>
+            <span>演示说明</span>
+          </button>
+        </div>
+      </aside>
+
+      <div class="workspace">
+        <header class="topbar">
+          <button id="menuButton" class="icon-button mobile-only" type="button" aria-label="打开导航">
+            <i data-lucide="menu" aria-hidden="true"></i>
+          </button>
+          <div class="page-heading">
+            <p id="monthLabel" class="eyebrow"></p>
+            <h1>本月账本</h1>
+          </div>
+          <div class="topbar-actions">
+            <span class="demo-badge">模拟数据</span>
+          </div>
+        </header>
+
+        <main class="page-content">
+          <section class="summary-section" aria-label="本月收支总览">
+            <article class="metric-card">
+              <div class="metric-label">
+                <span>本月结余</span>
+                <i data-lucide="scale" aria-hidden="true"></i>
+              </div>
+              <strong id="balanceValue" class="metric-value">¥0.00</strong>
+              <small>收入减支出</small>
+            </article>
+            <article class="metric-card">
+              <div class="metric-label">
+                <span>本月收入</span>
+                <i data-lucide="arrow-down-left" aria-hidden="true"></i>
+              </div>
+              <strong id="incomeValue" class="metric-value income">¥0.00</strong>
+              <small>累计到账</small>
+            </article>
+            <article class="metric-card">
+              <div class="metric-label">
+                <span>本月支出</span>
+                <i data-lucide="arrow-up-right" aria-hidden="true"></i>
+              </div>
+              <strong id="expenseValue" class="metric-value expense">¥0.00</strong>
+              <small>累计花费</small>
+            </article>
+          </section>
+
+          <section class="ledger-section" aria-labelledby="ledgerTitle">
+            <div class="section-heading">
+              <div>
+                <h2 id="ledgerTitle">最近账单</h2>
+                <p id="recordCount" class="section-caption"></p>
+              </div>
+              <span class="local-note">
+                <i data-lucide="database" aria-hidden="true"></i>
+                本地保存
+              </span>
+            </div>
+            <div id="transactionList" class="transaction-list"></div>
+          </section>
+        </main>
+      </div>
+
+      <button id="addButton" class="fab" type="button" aria-label="记一笔">
+        <i data-lucide="plus" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div id="actionSheetBackdrop" class="modal-backdrop sheet-backdrop" hidden>
+      <section class="bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="actionSheetTitle">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="sheet-heading">
+          <h2 id="actionSheetTitle">选择记账方式</h2>
+          <button class="icon-button" type="button" data-close="actionSheet" aria-label="关闭">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="action-options">
+          <button id="manualEntryButton" class="action-option" type="button">
+            <span class="action-icon manual">
+              <i data-lucide="pen-line" aria-hidden="true"></i>
+            </span>
+            <span>
+              <strong>手动记账</strong>
+              <small>直接填写金额和分类</small>
+            </span>
+            <i data-lucide="chevron-right" aria-hidden="true"></i>
+          </button>
+          <button id="imageEntryButton" class="action-option" type="button">
+            <span class="action-icon image">
+              <i data-lucide="scan-line" aria-hidden="true"></i>
+            </span>
+            <span>
+              <strong>图片记账</strong>
+              <small>上传图片并模拟识别</small>
+            </span>
+            <i data-lucide="chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <div id="entryModalBackdrop" class="modal-backdrop" hidden>
+      <section class="dialog entry-dialog" role="dialog" aria-modal="true" aria-labelledby="entryDialogTitle">
+        <form id="transactionForm" novalidate>
+          <header class="dialog-header">
+            <div>
+              <p id="entryDialogEyebrow" class="eyebrow">新增账单</p>
+              <h2 id="entryDialogTitle">记一笔</h2>
+            </div>
+            <button class="icon-button" type="button" data-close="entry" aria-label="关闭">
+              <i data-lucide="x" aria-hidden="true"></i>
+            </button>
+          </header>
+
+          <div class="dialog-body">
+            <div id="imageEntrySection" class="image-entry-section" hidden>
+              <input id="imageFileInput" type="file" accept="image/png,image/jpeg,image/webp" hidden />
+              <div id="imageDropzone" class="image-dropzone" role="button" tabindex="0" aria-label="选择图片">
+                <div id="dropzonePrompt">
+                  <i data-lucide="image-plus" aria-hidden="true"></i>
+                  <strong>选择或拍摄小票图片</strong>
+                  <small>支持 PNG、JPEG、WebP，最大 20 MB</small>
+                  <button class="secondary-button" type="button">选择图片</button>
+                </div>
+                <div id="imagePreviewWrap" class="image-preview-wrap" hidden>
+                  <img id="imagePreview" alt="待识别图片预览" />
+                  <button id="replaceImageButton" class="replace-image-button" type="button">
+                    <i data-lucide="refresh-cw" aria-hidden="true"></i>
+                    更换
+                  </button>
+                </div>
+              </div>
+              <button id="sampleReceiptButton" class="ghost-button" type="button">
+                <i data-lucide="sparkles" aria-hidden="true"></i>
+                使用示例小票
+              </button>
+              <div id="recognitionState" class="recognition-state" hidden>
+                <div class="recognition-row">
+                  <i data-lucide="scan-search" aria-hidden="true"></i>
+                  <span>正在识别金额、日期和商户...</span>
+                </div>
+                <div class="progress-track"><span id="recognitionProgress"></span></div>
+              </div>
+              <div id="recognitionNotice" class="recognition-notice" hidden>
+                <i data-lucide="badge-check" aria-hidden="true"></i>
+                <span>已生成模拟识别结果，请确认后保存</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <span class="field-label">类型</span>
+              <div class="segmented-control" role="group" aria-label="账单类型">
+                <button id="expenseTypeButton" class="segment is-active" type="button" data-type="expense">
+                  支出
+                </button>
+                <button id="incomeTypeButton" class="segment" type="button" data-type="income">
+                  收入
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="field-label" for="amountInput">金额</label>
+              <div class="amount-control">
+                <span>¥</span>
+                <input id="amountInput" name="amount" inputmode="decimal" placeholder="0.00" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="field-label" for="dateInput">日期</label>
+                <input id="dateInput" class="text-input" name="date" type="date" />
+              </div>
+              <div class="form-group">
+                <span class="field-label">分类</span>
+                <div id="categoryChips" class="category-chips"></div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="field-label" for="noteInput">备注</label>
+              <textarea id="noteInput" name="note" rows="3" maxlength="200" placeholder="可选，最多 200 字"></textarea>
+            </div>
+
+            <p id="formError" class="form-error" role="alert" hidden></p>
+          </div>
+
+          <footer class="dialog-footer">
+            <button id="cancelEntryButton" class="secondary-button" type="button">取消</button>
+            <button id="saveEntryButton" class="primary-button" type="submit">
+              <i data-lucide="check" aria-hidden="true"></i>
+              保存账单
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+
+    <div id="detailModalBackdrop" class="modal-backdrop" hidden>
+      <section class="dialog detail-dialog" role="dialog" aria-modal="true" aria-labelledby="detailDialogTitle">
+        <header class="dialog-header">
+          <div>
+            <p class="eyebrow">账单详情</p>
+            <h2 id="detailDialogTitle">账单</h2>
+          </div>
+          <button class="icon-button" type="button" data-close="detail" aria-label="关闭">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </header>
+        <div id="detailContent" class="detail-content"></div>
+        <footer class="dialog-footer detail-footer">
+          <button id="deleteTransactionButton" class="danger-button" type="button">
+            <i data-lucide="trash-2" aria-hidden="true"></i>
+            删除
+          </button>
+          <button id="editTransactionButton" class="primary-button" type="button">
+            <i data-lucide="pencil" aria-hidden="true"></i>
+            编辑
+          </button>
+        </footer>
+      </section>
+    </div>
+
+    <div id="confirmModalBackdrop" class="modal-backdrop" hidden>
+      <section class="dialog confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="confirm-icon" aria-hidden="true">
+          <i data-lucide="triangle-alert"></i>
+        </div>
+        <h2 id="confirmTitle">删除这笔账单？</h2>
+        <p id="confirmMessage">删除后无法恢复，关联图片也会被删除。</p>
+        <footer class="dialog-footer">
+          <button id="cancelDeleteButton" class="secondary-button" type="button">取消</button>
+          <button id="confirmDeleteButton" class="danger-button" type="button">
+            <i data-lucide="trash-2" aria-hidden="true"></i>
+            确认删除
+          </button>
+        </footer>
+      </section>
+    </div>
+
+    <div id="helpModalBackdrop" class="modal-backdrop" hidden>
+      <section class="dialog help-dialog" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+        <header class="dialog-header">
+          <div>
+            <p class="eyebrow">Demo</p>
+            <h2 id="helpTitle">演示说明</h2>
+          </div>
+          <button class="icon-button" type="button" data-close="help" aria-label="关闭">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </header>
+        <div class="help-content">
+          <p>这是一个纯前端交互 Demo，没有连接真实后端。</p>
+          <ul>
+            <li>账单数据保存在当前浏览器本地。</li>
+            <li>图片识别结果由模拟数据生成。</li>
+            <li>可体验新增、编辑、删除和详情查看。</li>
+            <li>点击“恢复演示数据”可清空修改并回到初始状态。</li>
+          </ul>
+        </div>
+        <footer class="dialog-footer">
+          <button class="primary-button" type="button" data-close="help">知道了</button>
+        </footer>
+      </section>
+    </div>
+
+    <div id="mobileNavBackdrop" class="modal-backdrop mobile-nav-backdrop" hidden>
+      <aside class="mobile-nav" aria-label="移动端导航">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <i data-lucide="wallet-minimal"></i>
+          </span>
+          <span>
+            <strong>记账本</strong>
+            <small>MVP Demo</small>
+          </span>
+        </div>
+        <button class="mobile-nav-item is-active" type="button">
+          <i data-lucide="book-open-text" aria-hidden="true"></i>
+          本月账本
+        </button>
+        <button class="mobile-nav-item" type="button" disabled>
+          <i data-lucide="chart-no-axes-combined" aria-hidden="true"></i>
+          统计
+          <small>后续</small>
+        </button>
+        <button id="mobileResetButton" class="mobile-nav-item" type="button">
+          <i data-lucide="rotate-ccw" aria-hidden="true"></i>
+          恢复演示数据
+        </button>
+        <button id="mobileHelpButton" class="mobile-nav-item" type="button">
+          <i data-lucide="circle-help" aria-hidden="true"></i>
+          演示说明
+        </button>
+      </aside>
+    </div>
+
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+  </body>
+</html>
